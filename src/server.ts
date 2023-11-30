@@ -1,10 +1,13 @@
 import fastify from "fastify";
+import { knex } from './database-config'
 
 const app = fastify()
 
-app.get('/hello', () => {
+app.get('/hello', async () => {
+  const test = await knex('users').select('*')
+
   return {
-    message: 'Ola mundo'
+   test
   }
 })
 
