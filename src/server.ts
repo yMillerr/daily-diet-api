@@ -1,16 +1,17 @@
-import fastify from "fastify";
+import fastify from 'fastify'
+
 import { knex } from './database-config'
+
+import { usersRoutes } from './routes/users'
 
 const app = fastify()
 
-app.get('/hello', async () => {
-  const test = await knex('users').select('*')
-
-  return {
-   test
-  }
+app.register(usersRoutes, {
+  prefix: '/users',
 })
 
-app.listen({
-  port: 3333
-}).then(() => console.log('HTTP server is runing'))
+app
+  .listen({
+    port: 3333,
+  })
+  .then(() => console.log('HTTP server is runing'))
