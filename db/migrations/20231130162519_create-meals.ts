@@ -1,5 +1,4 @@
-import { Knex } from "knex";
-
+import { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('meals', (table) => {
@@ -9,12 +8,10 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable()
     table.timestamp('updated_at')
     table.text('category')
-    table.text('user_id').notNullable()
+    table.text('user_id').notNullable().index()
   })
 }
-
 
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTable('meals')
 }
-
