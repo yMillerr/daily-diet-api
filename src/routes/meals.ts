@@ -37,4 +37,41 @@ export async function mealsRoutes(app: FastifyInstance) {
       user_id: user.id,
     })
   })
+
+  app.put('/:id', async (req, reply) => {
+    const requestBodySchema = z.object({
+      name: z.string().nullable(),
+      description: z.string().nullable(),
+      hour: z.string().nullable(),
+      date: z.string().nullable(),
+      category: z.enum(['in', 'out']).nullable(),
+    })
+
+    const requestParamsSchema = z.object({
+      id: z.string(),
+    })
+
+    const { name, description, hour, date, category } = requestBodySchema.parse(
+      req.body,
+    )
+
+    const { id } = requestParamsSchema.parse(req.params)
+
+    const meal = await knex('meals').where({ id }).first()
+
+    if (!meal) {
+      return reply.status(400).send({
+        message: 'This meal does not exist',
+      })
+    }
+
+    await knex('meals').update({
+      name: name ?? meal.name,
+      description: description ?? meal.description,
+      date: date ?? meal.date,
+      hour: hour ?? meal.hour,
+      category: category ?? meal.category,
+      updated_at: knex.fn.now(),
+    })
+  })
 }
