@@ -74,4 +74,22 @@ export async function mealsRoutes(app: FastifyInstance) {
       updated_at: knex.fn.now(),
     })
   })
+
+  app.get('/', async (req, reply) => {
+    const { session_id } = req.cookies
+
+    const user = await knex('users').where({ session_id }).first()
+
+    if (!user) {
+      return reply.status(400).send({
+        message: 'You need to be logged in to create a meal',
+      })
+    }
+
+    const meals = await knex('meals').where({ user_id: user.id })
+
+    return {
+      meals,
+    }
+  })
 }
