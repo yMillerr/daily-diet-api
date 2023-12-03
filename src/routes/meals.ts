@@ -2,94 +2,123 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { knex } from '../database-config'
 import { randomUUID } from 'crypto'
+import { verifyIfSessionIdIsValid } from '../middlewares/verify-if-session-id-is-valid'
 
 export async function mealsRoutes(app: FastifyInstance) {
-  app.post('/', async (req, reply) => {
-    const requestBodySchema = z.object({
-      name: z.string(),
-      description: z.string().nullable(),
-      date: z.string(),
-      hour: z.string(),
-      category: z.enum(['in', 'out']),
-    })
-
-    const { name, description, date, hour, category } = requestBodySchema.parse(
-      req.body,
-    )
-
-    const sessionId = req.cookies.session_id
-
-    const user = await knex('users').where({ session_id: sessionId }).first()
-
-    if (!user) {
-      return reply.status(400).send({
-        message: 'You need to be logged in to create a meal',
+  app.post(
+    '/',
+    {
+      preHandler: [verifyIfSessionIdIsValid],
+    },
+    async (req, reply) => {
+      const requestBodySchema = z.object({
+        name: z.string(),
+        description: z.string().nullable(),
+        date: z.string(),
+        hour: z.string(),
+        category: z.enum(['in', 'out']),
       })
-    }
 
-    await knex('meals').insert({
-      id: randomUUID(),
-      name,
-      description,
-      hour,
-      date,
-      category,
-      user_id: user.id,
-    })
-  })
+      const { session_id } = req.cookies
+      const { name, description, date, hour, category } =
+        requestBodySchema.parse(req.body)
 
-  app.put('/:id', async (req, reply) => {
-    const requestBodySchema = z.object({
-      name: z.string().nullable(),
-      description: z.string().nullable(),
-      hour: z.string().nullable(),
-      date: z.string().nullable(),
-      category: z.enum(['in', 'out']).nullable(),
-    })
+      const user = await knex('users').where({ session_id }).first()
 
-    const requestParamsSchema = z.object({
-      id: z.string(),
-    })
+      if (!user) {
+        return reply.status(400).send({
+          message: 'You need to be logged in to create a meal',
+        })
+      }
 
-    const { name, description, hour, date, category } = requestBodySchema.parse(
-      req.body,
-    )
-
-    const { id } = requestParamsSchema.parse(req.params)
-
-    const meal = await knex('meals').where({ id }).first()
-
-    if (!meal) {
-      return reply.status(400).send({
-        message: 'This meal does not exist',
+      await knex('meals').insert({
+        id: randomUUID(),
+        name,
+        description,
+        hour,
+        date,
+        category,
+        user_id: user.id,
       })
-    }
 
-    await knex('meals').update({
-      name: name ?? meal.name,
-      description: description ?? meal.description,
-      date: date ?? meal.date,
-      hour: hour ?? meal.hour,
-      category: category ?? meal.category,
-      updated_at: knex.fn.now(),
-    })
-  })
+      reply.status(201).send()
+    },
+  )
 
-  app.get('/', async (req, reply) => {
-    const { session_id } = req.cookies
-
-    const user = await knex('users').where({ session_id }).first()
-
-    if (!user) {
-      return reply.status(400).send({
-        message: 'You need to be logged in to create a meal',
+  app.put(
+    '/:id',
+    {
+      preHandler: [verifyIfSessionIdIsValid],
+    },
+    async (req, reply) => {
+      const requestBodySchema = z.object({
+        name: z.string().nullable(),
+        description: z.string().nullable(),
+        hour: z.string().nullable(),
+        date: z.string().nullable(),
+        category: z.enum(['in', 'out']).nullable(),
       })
-    }
 
-    const meals = await knex('meals').where({ user_id: user.id })
+      const requestParamsSchema = z.object({
+        id: z.string(),
+      })
 
-    return {
-      meals,
-    }
-  })
+      const { name, description, hour, date, category } =
+        requestBodySchema.parse(req.body)
+
+      const { id } = requestParamsSchema.parse(req.params)
+      const { session_id } = req.cookies
+
+      const user = await knex('users').where({ session_id }).first()
+
+      if (!user) {
+        return reply.status(400).send({
+          message: 'You needed to be logged in to update meals',
+        })
+      }
+
+      const meal = await knex('meals').where({ id, user_id: user.id }).first()
+
+      if (!meal) {
+        return reply.status(400).send({
+          message: 'This meal does not exist',
+        })
+      }
+
+      await knex('meals').update({
+        name: name ?? meal.name,
+        description: description ?? meal.description,
+        date: date ?? meal.date,
+        hour: hour ?? meal.hour,
+        category: category ?? meal.category,
+        updated_at: knex.fn.now(),
+      })
+
+      reply.status(200).send()
+    },
+  )
+
+  app.get(
+    '/',
+    {
+      preHandler: [verifyIfSessionIdIsValid],
+    },
+    async (req, reply) => {
+      const { session_id } = req.cookies
+
+      const user = await knex('users').where({ session_id }).first()
+
+      if (!user) {
+        return reply.status(400).send({
+          message: 'You needed to be logged in to list meals',
+        })
+      }
+
+      const meals = await knex('meals').where({ user_id: user.id })
+
+      return {
+        meals,
+      }
+    },
+  )
 }
