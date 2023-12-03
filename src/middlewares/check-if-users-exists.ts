@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { knex } from '../database-config'
 
-export async function verifyIfSessionIdIsValid(
+export async function checkIfUserExists(
   req: FastifyRequest,
   reply: FastifyReply,
 ) {
