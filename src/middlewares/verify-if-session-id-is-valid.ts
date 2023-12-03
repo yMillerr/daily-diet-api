@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
+import { knex } from '../database-config'
 
 export async function verifyIfSessionIdIsValid(
   req: FastifyRequest,
@@ -11,4 +12,15 @@ export async function verifyIfSessionIdIsValid(
       message: 'Unauthorized',
     })
   }
+
+  const user = await knex('users').where({ session_id }).first()
+
+  if (!user) {
+    return reply.status(401).send()
+  }
+
+  reply.setCookie('user_id', user.id, {
+    path: '/',
+    maxAge: 60 * 60 * 24, // 1 day
+  })
 }
