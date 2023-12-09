@@ -16,18 +16,10 @@ export async function mealsRoutes(app: FastifyInstance) {
       category: z.enum(['in', 'out']),
     })
 
-    const { session_id } = req.cookies
+    const { user_id } = req.cookies
     const { name, description, date, hour, category } = requestBodySchema.parse(
       req.body,
     )
-
-    const user = await knex('users').where({ session_id }).first()
-
-    if (!user) {
-      return reply.status(400).send({
-        message: 'You need to be logged in to create a meal',
-      })
-    }
 
     await knex('meals').insert({
       id: randomUUID(),
@@ -36,7 +28,7 @@ export async function mealsRoutes(app: FastifyInstance) {
       hour,
       date,
       category,
-      user_id: user.id,
+      user_id,
     })
 
     reply.status(201).send()
@@ -60,17 +52,9 @@ export async function mealsRoutes(app: FastifyInstance) {
     )
 
     const { id } = requestParamsSchema.parse(req.params)
-    const { session_id } = req.cookies
+    const { user_id } = req.cookies
 
-    const user = await knex('users').where({ session_id }).first()
-
-    if (!user) {
-      return reply.status(400).send({
-        message: 'You needed to be logged in to update meals',
-      })
-    }
-
-    const meal = await knex('meals').where({ id, user_id: user.id }).first()
+    const meal = await knex('meals').where({ id, user_id }).first()
 
     if (!meal) {
       return reply.status(400).send({
@@ -90,18 +74,10 @@ export async function mealsRoutes(app: FastifyInstance) {
     reply.status(200).send()
   })
 
-  app.get('/', async (req, reply) => {
-    const { session_id } = req.cookies
+  app.get('/', async (req) => {
+    const { user_id } = req.cookies
 
-    const user = await knex('users').where({ session_id }).first()
-
-    if (!user) {
-      return reply.status(400).send({
-        message: 'You needed to be logged in to list meals',
-      })
-    }
-
-    const meals = await knex('meals').where({ user_id: user.id })
+    const meals = await knex('meals').where({ user_id })
 
     return {
       meals,
@@ -127,5 +103,23 @@ export async function mealsRoutes(app: FastifyInstance) {
     await knex('meals').where({ id }).delete()
 
     reply.status(200).send()
+  })
+
+  app.get('/infos', async (req) => {
+    const { user_id } = req.cookies
+
+    const meals = await knex('meals').where({ user_id })
+
+    const mealsWithinTheDiet = meals.filter(
+      (meal) => meal.category === 'in',
+    ).length
+
+    const offDietMeals = meals.filter((meal) => meal.category === 'out').length
+
+    return {
+      mealsQuantity: meals.length ?? 0,
+      offDietMeals,
+      mealsWithinTheDiet,
+    }
   })
 }
