@@ -47,6 +47,7 @@ describe('Users routes', () => {
       })
       .expect(200)
 
-    expect(headers['set-cookie']).toBeDefined()
+    expect(headers['set-cookie']).toHaveLength(1)
+    expect(headers['set-cookie'][0]).toContain('session_id')
   })
 })

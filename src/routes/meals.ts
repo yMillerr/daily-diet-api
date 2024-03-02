@@ -7,7 +7,7 @@ import { checkIfUserExists } from '../middlewares/check-if-users-exists'
 export async function mealsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', checkIfUserExists)
 
-  app.post('/', async (req, reply) => {
+  app.post('/meals', async (req, reply) => {
     const requestBodySchema = z.object({
       name: z.string(),
       description: z.string().nullable(),
@@ -16,7 +16,8 @@ export async function mealsRoutes(app: FastifyInstance) {
       category: z.enum(['in', 'out']),
     })
 
-    const { user_id } = req.cookies
+    const userId = req.userId
+
     const { name, description, date, hour, category } = requestBodySchema.parse(
       req.body,
     )
@@ -28,13 +29,13 @@ export async function mealsRoutes(app: FastifyInstance) {
       hour,
       date,
       category,
-      user_id,
+      user_id: userId,
     })
 
-    reply.status(201).send()
+    return reply.status(201).send()
   })
 
-  app.put('/:id', async (req, reply) => {
+  app.put('/meals/:id', async (req, reply) => {
     const requestBodySchema = z.object({
       name: z.string().nullable(),
       description: z.string().nullable(),
@@ -74,7 +75,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     reply.status(200).send()
   })
 
-  app.get('/', async (req) => {
+  app.get('/meals', async (req) => {
     const { user_id } = req.cookies
 
     const meals = await knex('meals').where({ user_id })
@@ -84,7 +85,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     }
   })
 
-  app.delete('/:id', async (req, reply) => {
+  app.delete('/meals/:id', async (req, reply) => {
     const requestParamsSchema = z.object({
       id: z.string(),
     })
@@ -105,7 +106,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     reply.status(200).send()
   })
 
-  app.get('/infos', async (req) => {
+  app.get('/meals/infos', async (req) => {
     const { user_id } = req.cookies
 
     const meals = await knex('meals').where({ user_id })

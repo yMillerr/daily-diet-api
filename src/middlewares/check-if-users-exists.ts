@@ -19,8 +19,5 @@ export async function checkIfUserExists(
     return reply.status(401).send()
   }
 
-  reply.setCookie('user_id', user.id, {
-    path: '/',
-    maxAge: 60 * 60 * 24, // 1 day
-  })
+  req.userId = user.id
 }

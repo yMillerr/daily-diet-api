@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { z } from 'zod'
 
 export async function usersRoutes(app: FastifyInstance) {
-  app.post('/', async (req, reply) => {
+  app.post('/users', async (req, reply) => {
     const requestBodySchema = z.object({
       name: z.string(),
       email: z.string().email(),
@@ -22,7 +22,7 @@ export async function usersRoutes(app: FastifyInstance) {
     const checkIfUserExist = await knex('users').where({ email }).first()
 
     if (checkIfUserExist) {
-      reply.status(400).send({
+      return reply.status(400).send({
         message: 'This email has already been used',
       })
     }
@@ -35,10 +35,10 @@ export async function usersRoutes(app: FastifyInstance) {
       avatar_url: avatarUrl,
     })
 
-    reply.status(201)
+    return reply.status(201).send()
   })
 
-  app.post('/login', async (req, reply) => {
+  app.post('/users/login', async (req, reply) => {
     const requestBodySchema = z.object({
       email: z.string().email(),
       password: z.string(),
@@ -64,9 +64,12 @@ export async function usersRoutes(app: FastifyInstance) {
 
     await knex('users').where({ id: user.id }).update({ session_id: sessionId })
 
-    reply.status(200).setCookie('session_id', sessionId, {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 1 semana
-    })
+    reply
+      .status(200)
+      .setCookie('session_id', sessionId, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 1 semana
+      })
+      .send()
   })
 }
